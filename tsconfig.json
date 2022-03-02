@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "lib": ["es5", "es2016.array.include"],
+    "strict": true,
+    "esModuleInterop": true,
+    "declaration": true,
+    "allowJs": true,
+    "charset": "utf8",
+    "outDir": "dist",
+    "removeComments": true
+  }
+}
