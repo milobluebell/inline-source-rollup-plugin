@@ -9,6 +9,7 @@
     "allowJs": true,
     "charset": "utf8",
     "outDir": "dist",
-    "removeComments": true
+    "removeComments": true,
+    "noImplicitThis": false
   }
 }

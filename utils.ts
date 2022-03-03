@@ -73,12 +73,13 @@ export function extractSourceLocation(elementString: string, warnningLevel?: IPl
   const firstMatching = elementString!.match(/(src|href)\=(\"|\').+(\"|\')/g)?.[0];
   if (!firstMatching) {
     //
-    const errorMsg = `rollup-plugin-inline-source can not match any sources by src/href attribute specified to ${firstMatching}, is that correct?`;
+    const errorMsg = `@rollup/plugin-inline-resource can not match any resources by src/href attribute specified to ${firstMatching}, is that correct?`;
     if (warnningLevel === 2 || warnningLevel === 'error') {
+      chalkSay(errorMsg, chalk.bgRed.white, true);
       throw new Error(errorMsg);
     }
     if (warnningLevel === 1 || warnningLevel === 'warn') {
-      chalk.yellow(errorMsg);
+      chalkSay(errorMsg, chalk.yellow, true);
     }
   } else {
     return firstMatching.match(/\".+\"/g)?.[0]?.replace(/\"/g, '').replace(COMMON.baseUrl, '');
@@ -154,6 +155,16 @@ export function checkShouldMount(elementString: string, determiningUnmountProper
   }
 
   return true;
+}
+
+
+/**
+ *
+ * @param remoteUrl remote url of a resource
+ * @param forceRefresh force refresh cache even if they have been cached
+ */
+export function cacheRemoteContent(remoteUrl: URL['href'], forceRefresh = false) {
+
 }
 
 

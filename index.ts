@@ -1,24 +1,22 @@
 
 import chalk from 'chalk';
-import { NormalizedOutputOptions, OutputBundle, EmittedAsset } from 'rollup';
+import path from 'path';
+import { NormalizedOutputOptions, OutputBundle, OutputChunk, OutputAsset, EmittedAsset } from 'rollup';
 import { chalkSay } from './utils'
 export interface IPluginProps {
-  // 配置那些资源需要内联
-  include?: string[] | RegExp;
-  // 是否压缩
+  //
+  includes: string[] | RegExp;
+  // it will terser bundle content
   compress?: boolean;
-  // 遇到哪些属性就使此插件忽略内联请求
-  // 比如 ['async', 'defer', { key: 'type', value: 'module' }, { key: 'rel', value: 'modulepreload' }, { key: 'href', value: '//at.alicdn.com/t/font_2857489_imieufzfwmb.css'}]
+  // ignorations
+  // such as ['async', 'defer', { key: 'type', value: 'module' }, { key: 'rel', value: 'modulepreload' }, { key: 'href', value: '//at.alicdn.com/t/font_2857489_imieufzfwmb.css'}]
   excludeAttrs?: Array<{ key: string, value: string } | string>;
-  exclude?: RegExp;
-  // 项目根目录
-  root?: string;
-  // 是否允许从远程获取资源？
-  // 比如http://cdn.t.com/xxx.js就会去发送请求来获取资源
-  download?: boolean;
-  // 没有找到资源的解决策略
-  // 2代表error；1代表warn；0代表none
+  excludes?: RegExp;
+  // if unmet any resource, which level of notification should this launch
+  // 2 means 'error'；1 equals 'warn'；0 equals 'none'
   nonMatched?: 2 | 1 | 0 | 'error' | 'warn' | 'none';
+  // should it cache remote curl contentn
+  cache?: boolean
 }
 
 const DEFAULT_CONFIGS = {
@@ -27,20 +25,87 @@ const DEFAULT_CONFIGS = {
   excludeAttrs: ['async', 'defer', { key: 'type', value: 'module' }, { key: 'rel', value: 'modulepreload' }],
   exclude: /\.(svg|jpg)$/,
   download: true,
-  nonMatched: 2
+  nonMatched: 2,
+  cache: true
 }
+export default function inlineResource(configs?: IPluginProps) {
+  const {
+    includes: configIncludes = DEFAULT_CONFIGS.include,
+    compress = DEFAULT_CONFIGS.compress,
+    excludeAttrs = DEFAULT_CONFIGS.excludeAttrs,
+    excludes: configExcludes = DEFAULT_CONFIGS.exclude,
+    nonMatched = DEFAULT_CONFIGS.nonMatched,
+    cache = DEFAULT_CONFIGS.cache
+  } = configs || {};
 
-export default function inlineResource(configs: IPluginProps) {
-  const { include, compress = DEFAULT_CONFIGS.compress, excludeAttrs = DEFAULT_CONFIGS.excludeAttrs, exclude = DEFAULT_CONFIGS.exclude, download = DEFAULT_CONFIGS.download, nonMatched = DEFAULT_CONFIGS.nonMatched } = configs;
   return {
-    name: 'rollup-plugin-inline-source',
-    // @ts-ignore
-    async generateBundle: (output: NormalizedOutputOptions, bundles: OutputBundle) => {
+    name: '@rollup/plugin-inline-resource',
+    generateBundle(output: NormalizedOutputOptions, bundles: OutputBundle) {
+
+      // valid checkings
+      let configIncludeFuzzyType = Object.prototype.toString.call(configIncludes).toLowerCase();
+      if (!configIncludeFuzzyType.includes(' array') && !configIncludeFuzzyType.includes(' regexp')) {
+        const includeTypeErrorMsg = `@rollup/plugin-inline-resource\'s input option \'include\' should be an array or RegExp`;
+        chalkSay(includeTypeErrorMsg);
+        throw new Error(includeTypeErrorMsg);
+      }
+
+      // include/exclude option worked here
+      const bundleNames = Object.keys(bundles);
+      const includeValidationCompare = ((rule) => {
+        if (configIncludeFuzzyType.includes(' array')) {
+          return function (bundleName: string) {
+            return (rule as string[]).includes(path.extname(bundleName).substring(1));
+          }
+        }
+        if (configIncludeFuzzyType.includes(' regexp')) {
+          return function (bundleName: string) {
+            return (rule as RegExp).test(bundleName)
+          }
+        }
+        return () => false
+      })(configIncludes);
+
+      // bundles filterd after include/exclude
+      const conditionalBundleNames = bundleNames.filter((bundleName: string) => {
+        let includeCondition = includeValidationCompare(bundleName);
+        let excludeCondition = configExcludes.test(bundleName);
+        return includeCondition && !excludeCondition && path.extname(bundleName) !== '.html';
+      });
+
+      // save origin html content
+      const originHtmlContent = bundles[bundleNames.filter(name => path.extname(name) === '.html')[0]];
+      console.log(originHtmlContent);
+
+      //
+      const extractSourceCode = (bundleName: string, bundleWholeInfo: any) => {
+        const bundleExtName = path.extname(bundleName);
+        if (bundleExtName === '.js') {
+          return bundleWholeInfo.code || ' '
+        }
+        if (bundleExtName === '.css') {
+          return bundleWholeInfo?.['source'] || ' '
+        }
+      }
+
       chalkSay('here were generateBundle content')
-      console.log(Object.values(bundles));
       chalkSay('above were generateBundle\'s content')
-      console.log(Object.keys(bundles));
+      conditionalBundleNames.forEach(name => {
+        chalkSay(`bundle name: ${name}`, chalk.blue, false);
+        console.log(extractSourceCode(name, bundles[name]));
+      });
       chalkSay('Hey, here we test', chalk.bgYellow.blue);
+
+      this.emitFile({
+        type: 'asset',
+        source: `<!doctype html>
+          <body>
+          test content
+          </body>
+        </html>`,
+        name: 'Rollup HTML Asset',
+        fileName: 'index.html'
+      });
 
 
       /**

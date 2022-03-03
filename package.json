@@ -1,6 +1,9 @@
 {
-  "name": "rollup-plugin-inline-resource",
+  "name": "@rollup/plugin-inline-resource",
   "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "one rollup plugin to embed static resource into the html file",
   "scripts": {
     "dist": "npm run clean && npx tsc",
@@ -14,7 +17,7 @@
     "dist",
     "LICENSE"
   ],
-  "homepage": "https://github.com/milobluebell/rollup-plugin-inline-resource#readme",
+  "homepage": "https://github.com/techigen/rollup-plugin-inline-resource#readme",
   "devDependencies": {
     "@types/html-minifier-terser": "^6.1.0",
     "@types/node": "^17.0.21",
