@@ -105,6 +105,11 @@ export function extractExpectedTagName(elementString: string) {
 }
 
 
+export function createDomNodeString(tagName: string, innerHTMLContent?: string, attrs?: string[]) {
+  return `<${tagName} ${attrs?.join(' ')}>${innerHTMLContent}</${tagName}>`
+}
+
+
 /**
  *
  * @param elementString a stringified dom node content
@@ -116,9 +121,9 @@ export function extractExpectedTagName(elementString: string) {
  * extractProperties('<div class="cols-4 bg-gray" data-winner="RUSSIA" class="" id="testet" >123</div>'); // [ ' class="cols-4 bg-gray" data-winner="RUSSIA" class="" id="testet"' ]
  *
  */
-export function extractPropertiesString(elementString: string) {
+export function extractProperties(elementString: string) {
   const result: (string[] | null) = elementString.match(/\s?(\w|\-|\_)+(\=(\".*\"))+/g);
-  return result ? result[0] : ' '
+  return result ? result : []
 }
 
 
@@ -154,7 +159,20 @@ export function checkShouldMount(elementString: string, determiningUnmountProper
     return false;
   }
 
+
   return true;
+}
+
+/**
+ *
+ * @param matchRuleOpt
+ * @param htmlContent
+ * @returns string
+ */
+export function getDomNodeStringFromSourceProp(matchRuleOpt: { sourcePropKey: 'src' | 'href'; propValue: string }, htmlContent: string) {
+  const { sourcePropKey, propValue } = matchRuleOpt;
+  const regexpRule = new RegExp(`\<.+${sourcePropKey}=\"\/?${propValue}\".+`, 'g');
+  return htmlContent.match(regexpRule)?.[0] || ''
 }
 
 
@@ -166,7 +184,6 @@ export function checkShouldMount(elementString: string, determiningUnmountProper
 export function cacheRemoteContent(remoteUrl: URL['href'], forceRefresh = false) {
 
 }
-
 
 /**
  *
