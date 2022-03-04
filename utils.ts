@@ -110,7 +110,7 @@ export function createEmbededDomNode(tagName: string, innerHTMLContent?: string,
   mettedDomNodeString: string
 }) {
   const { name, mettedDomNodeString } = chalkHelper || {};
-  (name && mettedDomNodeString) && chalkSay(`extracted ${name} from ${mettedDomNodeString} and embedding`, chalk.blue, false);
+  (name && mettedDomNodeString) && chalkSay(`extracted ${name} and embedding into ${mettedDomNodeString}`, chalk.blue, false);
   return `<${tagName} ${attrs?.join(' ')}>${innerHTMLContent}</${tagName}>`
 }
 

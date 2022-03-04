@@ -13,6 +13,8 @@ export interface IPluginProps {
   // such as ['async', 'defer', { key: 'type', value: 'module' }, { key: 'rel', value: 'modulepreload' }, { key: 'href', value: '//at.alicdn.com/t/font_2857489_imieufzfwmb.css'}]
   excludeAttrs?: Array<{ key: string, value: string } | string>;
   excludes?: RegExp;
+  // public path
+  base?: URL['href'];
   // if unmet any resource, which level of notification should this launch
   // 2 means 'error'；1 equals 'warn'；0 equals 'none'
   nonMatched?: 2 | 1 | 0 | 'error' | 'warn' | 'none';
@@ -20,14 +22,15 @@ export interface IPluginProps {
   cache?: boolean;
 }
 
-const DEFAULT_CONFIGS = {
+export const DEFAULT_CONFIGS = {
   include: /\.(js|css)$/,
   compress: true,
   excludeAttrs: ['async', 'defer', { key: 'type', value: 'module' }, { key: 'rel', value: 'modulepreload' }],
   exclude: /\.(svg|jpg)$/,
   download: true,
   nonMatched: 2,
-  cache: true
+  cache: true,
+  base: ''
 }
 export default function inlineResource(configs?: IPluginProps) {
   const {
@@ -36,7 +39,8 @@ export default function inlineResource(configs?: IPluginProps) {
     excludeAttrs = DEFAULT_CONFIGS.excludeAttrs,
     excludes: configExcludes = DEFAULT_CONFIGS.exclude,
     nonMatched = DEFAULT_CONFIGS.nonMatched,
-    cache = DEFAULT_CONFIGS.cache
+    cache = DEFAULT_CONFIGS.cache,
+    base = DEFAULT_CONFIGS.base
   } = configs || {};
 
   return {
@@ -102,15 +106,16 @@ export default function inlineResource(configs?: IPluginProps) {
         } else {
           return Promise.resolve(content);
         }
+
       }
 
       chalkSay(`resources included: ${conditionalBundleNames.join('、')}...`, chalk.green, false);
 
       conditionalBundleNames.forEach((name) => {
-        const currentBundleContent = extractSourceCode(name, bundles[name]);
-        const mettedDomNodeString = getDomNodeStringFromSourceProp(name, htmlFileContent);
+        const currentBundleContent = extractSourceCode(`${name}`, bundles[name]);
+        const mettedDomNodeString = getDomNodeStringFromSourceProp(`${base}${name}`, htmlFileContent);
         if (!mettedDomNodeString) {
-          const unmetErrorMsg = `@rollup/plugin-inline-resource haven't matched the file named ${name}`;
+          const unmetErrorMsg = `@rollup/plugin-inline-resource haven't matched the file named ${base}${name}`;
           if (nonMatched === 2 || nonMatched === 'error') {
             chalkSay(unmetErrorMsg, chalk.bgRed.white);
             throw new Error(unmetErrorMsg);
