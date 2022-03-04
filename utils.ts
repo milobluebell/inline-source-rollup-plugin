@@ -105,7 +105,12 @@ export function extractExpectedTagName(elementString: string) {
 }
 
 
-export function createDomNodeString(tagName: string, innerHTMLContent?: string, attrs?: string[]) {
+export function createEmbededDomNode(tagName: string, innerHTMLContent?: string, attrs?: string[], chalkHelper?: {
+  name: string,
+  mettedDomNodeString: string
+}) {
+  const { name, mettedDomNodeString } = chalkHelper || {};
+  (name && mettedDomNodeString) && chalkSay(`extracted ${name} from ${mettedDomNodeString} and embedding`, chalk.blue, false);
   return `<${tagName} ${attrs?.join(' ')}>${innerHTMLContent}</${tagName}>`
 }
 
@@ -122,8 +127,13 @@ export function createDomNodeString(tagName: string, innerHTMLContent?: string, 
  *
  */
 export function extractProperties(elementString: string) {
-  const result: (string[] | null) = elementString.match(/\s?(\w|\-|\_)+(\=(\".*\"))+/g);
-  return result ? result : []
+  let result: (string[] | null) = elementString.match(/\s?(\w|\-|\_)+(\=(\".*\"))+/g);
+  // 去除掉src/href
+  result = result ? result?.map(r => {
+    return r.replace(/(src|href)=\".+\"/g, '');
+  }) : [];
+
+  return result
 }
 
 
@@ -169,9 +179,8 @@ export function checkShouldMount(elementString: string, determiningUnmountProper
  * @param htmlContent
  * @returns string
  */
-export function getDomNodeStringFromSourceProp(matchRuleOpt: { sourcePropKey: 'src' | 'href'; propValue: string }, htmlContent: string) {
-  const { sourcePropKey, propValue } = matchRuleOpt;
-  const regexpRule = new RegExp(`\<.+${sourcePropKey}=\"\/?${propValue}\".+`, 'g');
+export function getDomNodeStringFromSourceProp(propValue: string, htmlContent: string) {
+  const regexpRule = new RegExp(`\<.+(src|href)=\"\/?${propValue}\".+`, 'g');
   return htmlContent.match(regexpRule)?.[0] || ''
 }
 

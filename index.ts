@@ -1,12 +1,12 @@
 
 import chalk from 'chalk';
-import path from 'path';
+import path, { resolve } from 'path';
 import { NormalizedOutputOptions, OutputBundle, OutputChunk, OutputAsset, EmittedAsset } from 'rollup';
-import { chalkSay, getDomNodeStringFromSourceProp, extractExpectedTagName, createDomNodeString, extractProperties } from './utils';
+import { chalkSay, getDomNodeStringFromSourceProp, extractExpectedTagName, createEmbededDomNode, extractProperties } from './utils';
 import { minify } from 'html-minifier-terser'
 export interface IPluginProps {
   //
-  includes: string[] | RegExp;
+  includes?: string[] | RegExp;
   // it will terser bundle content
   compress?: boolean;
   // ignorations
@@ -75,12 +75,12 @@ export default function inlineResource(configs?: IPluginProps) {
       });
 
       //
-      const extractSourceCode = (bundleName: string, bundleWholeInfo: any) => {
+      const extractSourceCode = (bundleName: string, bundleWholeInfo: Record<any, any>) => {
         const bundleExtName = path.extname(bundleName);
         if (bundleExtName === '.js') {
-          return bundleWholeInfo.code || ' '
+          return bundleWholeInfo?.code || ' '
         }
-        if (['.css', '.html', '.svg', '.jpg', '.png'].includes(bundleExtName)) {
+        if (bundleWholeInfo?.type === 'asset' || ['.css', '.html', '.svg', '.jpg', '.png'].includes(bundleExtName)) {
           return bundleWholeInfo?.['source'] || ' '
         }
       }
@@ -100,36 +100,45 @@ export default function inlineResource(configs?: IPluginProps) {
             removeEmptyAttributes: true,
           });
         } else {
-          return content;
+          return Promise.resolve(content);
         }
       }
 
-      chalkSay(`prepared ${conditionalBundleNames.join('、')} to embedding resources`, chalk.blue)
+      chalkSay(`resources included: ${conditionalBundleNames.join('、')}...`, chalk.green, false);
 
-      conditionalBundleNames.forEach(async (name) => {
+      conditionalBundleNames.forEach((name) => {
         const currentBundleContent = extractSourceCode(name, bundles[name]);
-        const sourceKeyName = path.extname(name) === '.css' ? 'href' : 'src';
-        const mettedDomNodeString = getDomNodeStringFromSourceProp({
-          sourcePropKey: sourceKeyName,
-          propValue: `/${name}`
-        }, htmlFileContent);
+        const mettedDomNodeString = getDomNodeStringFromSourceProp(name, htmlFileContent);
         if (!mettedDomNodeString) {
           const unmetErrorMsg = `@rollup/plugin-inline-resource haven't matched the file named ${name}`;
           if (nonMatched === 2 || nonMatched === 'error') {
-            chalkSay(unmetErrorMsg, chalk.red);
+            chalkSay(unmetErrorMsg, chalk.bgRed.white);
             throw new Error(unmetErrorMsg);
           }
           if (nonMatched === 1 || nonMatched === 'warn') {
             chalkSay(unmetErrorMsg, chalk.bgYellow.white);
           }
         }
-        const innerHTMLContent = await terserOrNot(currentBundleContent);
+        // TODO: not support uncompressed one now
+        // const innerHTMLContent = await terserOrNot(currentBundleContent);
+        const innerHTMLContent = currentBundleContent;
 
         // excludeAttrs worked here
-        const domNodeString = createDomNodeString(extractExpectedTagName(mettedDomNodeString), innerHTMLContent, extractProperties(mettedDomNodeString));
-
-        chalkSay(`extract ${name} out of dom ${mettedDomNodeString} for embedding`, chalk.blue, false);
-        htmlFileContent.replace(mettedDomNodeString, domNodeString);
+        const props = extractProperties(mettedDomNodeString);
+        let domNodeString = mettedDomNodeString;
+        if (!excludeAttrs.filter(extAttr => {
+          if (typeof extAttr === 'string') {
+            return new RegExp(`${extAttr}`, 'g').test(props[0]);
+          } else {
+            return new RegExp(`${extAttr.key}\=\"${extAttr.value}\"`, 'g').test(props[0]);
+          }
+        }).length) {
+          domNodeString = createEmbededDomNode(extractExpectedTagName(mettedDomNodeString), innerHTMLContent, props, {
+            name,
+            mettedDomNodeString,
+          });
+        }
+        htmlFileContent = htmlFileContent.replace(mettedDomNodeString, domNodeString);
       });
 
       this.emitFile({
