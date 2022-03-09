@@ -1,6 +1,6 @@
 {
-  "name": "@rollup/plugin-inline-source",
-  "version": "1.0.0",
+  "name": "rollup-plugin-inline-sources",
+  "version": "0.0.3",
   "publishConfig": {
     "access": "public"
   },

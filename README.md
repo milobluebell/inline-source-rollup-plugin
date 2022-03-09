@@ -1,11 +1,11 @@
-# @rollup/plugin-inline-source
+# rollup-plugin-inline-sources
 
 A rollup plugin to embed static source into the html file.
 
 ## Install
 
-```console
-npm install @rollup/plugin-inline-source --save-dev
+```shell
+npm install rollup-plugin-inline-sources --save-dev
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ npm install @rollup/plugin-inline-source --save-dev
 Create a `rollup.config.js` [configuration file](https://www.rollupjs.org/guide/en/#configuration-files) and import the plugin:
 
 ```js
-import inlineResource from "@rollup/plugin-inline-source";
+import inlineResource from "rollup-plugin-inline-sources";
 
 module.exports = {
   input: "src/index.js",

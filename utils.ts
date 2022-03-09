@@ -73,7 +73,7 @@ export function extractSourceLocation(elementString: string, warnningLevel?: IPl
   const firstMatching = elementString!.match(/(src|href)\=(\"|\').+(\"|\')/g)?.[0];
   if (!firstMatching) {
     //
-    const errorMsg = `@rollup/plugin-inline-source can not match any resources by src/href attribute specified to ${firstMatching}, is that correct?`;
+    const errorMsg = `rollup-plugin-inline-sources can not match any resources by src/href attribute specified to ${firstMatching}, is that correct?`;
     if (warnningLevel === 2 || warnningLevel === 'error') {
       chalkSay(errorMsg, chalk.bgRed.white, true);
       throw new Error(errorMsg);

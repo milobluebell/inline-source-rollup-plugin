@@ -50,13 +50,13 @@ export default function inlineResource(configs?: IPluginProps) {
   } = configs || {};
 
   return {
-    name: '@rollup/plugin-inline-resource',
+    name: 'rollup-plugin-inline-resource',
     generateBundle(output: NormalizedOutputOptions, bundles: OutputBundle) {
 
       // valid checkings
       let configIncludeFuzzyType = Object.prototype.toString.call(configIncludes).toLowerCase();
       if (!configIncludeFuzzyType.includes(' array') && !configIncludeFuzzyType.includes(' regexp')) {
-        const includeTypeErrorMsg = `@rollup/plugin-inline-resource\'s input option \'includes\' should be an array or RegExp`;
+        const includeTypeErrorMsg = `rollup-plugin-inline-resource\'s input option \'includes\' should be an array or RegExp`;
         chalkSay(includeTypeErrorMsg);
         throw new Error(includeTypeErrorMsg);
       }
@@ -107,7 +107,7 @@ export default function inlineResource(configs?: IPluginProps) {
         const currentBundleContent = extractSourceCode(`${name}`, bundles[name]);
         const mettedDomNodeString = getDomNodeStringFromSourceProp(`${base}${name}`, htmlFileContent);
         if (!mettedDomNodeString) {
-          const unmetErrorMsg = `@rollup/plugin-inline-resource haven't matched the file named ${base}${name}`;
+          const unmetErrorMsg = `rollup-plugin-inline-resource haven't matched the file named ${base}${name}`;
           if (nonMatched === 2 || nonMatched === 'error') {
             chalkSay(unmetErrorMsg, chalk.bgRed.white);
             throw new Error(unmetErrorMsg);
