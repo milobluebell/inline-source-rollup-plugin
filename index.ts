@@ -3,12 +3,12 @@ import chalk from 'chalk';
 import path, { resolve } from 'path';
 import { NormalizedOutputOptions, OutputBundle, OutputChunk, OutputAsset, EmittedAsset } from 'rollup';
 import { chalkSay, getDomNodeStringFromSourceProp, extractExpectedTagName, createEmbededDomNode, extractProperties } from './utils';
-import { minify } from 'html-minifier-terser'
 export interface IPluginProps {
   //
   includes?: string[] | RegExp;
   // it will terser bundle content
-  compress?: boolean;
+  // TODO: unsupportted yet
+  // compress?: boolean;
   // ignorations
   // such as ['async', 'defer', { key: 'type', value: 'module' }, { key: 'rel', value: 'modulepreload' }, { key: 'href', value: '//at.alicdn.com/t/font_2857489_imieufzfwmb.css'}]
   excludeAttrs?: Array<{ key: string, value: string } | string>;
@@ -18,29 +18,35 @@ export interface IPluginProps {
   // if unmet any resource, which level of notification should this launch
   // 2 means 'error'；1 equals 'warn'；0 equals 'none'
   nonMatched?: 2 | 1 | 0 | 'error' | 'warn' | 'none';
-  // should it cache remote curl contentn
+  // should it cache remote curl content?
   cache?: boolean;
+  // if this plugin will transform resources' code according to base option
+  // such as, Before: `import * from './vendor.xxx'`; After: `import * from '${base}/vendor.xxx'`
+  bundleTransform?: (bundleName: string, bundleCode: string | undefined) => string;
+
 }
 
 export const DEFAULT_CONFIGS = {
-  include: /\.(js|css)$/,
+  includes: /\.(js|css)$/,
   compress: true,
   excludeAttrs: ['async', 'defer', { key: 'type', value: 'module' }, { key: 'rel', value: 'modulepreload' }],
   exclude: /\.(svg|jpg)$/,
   download: true,
   nonMatched: 2,
   cache: true,
-  base: ''
+  base: '',
+  bundleTransform: () => void 0
 }
 export default function inlineResource(configs?: IPluginProps) {
   const {
-    includes: configIncludes = DEFAULT_CONFIGS.include,
-    compress = DEFAULT_CONFIGS.compress,
+    includes: configIncludes = DEFAULT_CONFIGS.includes,
+    // compress = DEFAULT_CONFIGS.compress,
     excludeAttrs = DEFAULT_CONFIGS.excludeAttrs,
     excludes: configExcludes = DEFAULT_CONFIGS.exclude,
     nonMatched = DEFAULT_CONFIGS.nonMatched,
     cache = DEFAULT_CONFIGS.cache,
-    base = DEFAULT_CONFIGS.base
+    base = DEFAULT_CONFIGS.base,
+    bundleTransform = DEFAULT_CONFIGS.bundleTransform
   } = configs || {};
 
   return {
@@ -50,12 +56,12 @@ export default function inlineResource(configs?: IPluginProps) {
       // valid checkings
       let configIncludeFuzzyType = Object.prototype.toString.call(configIncludes).toLowerCase();
       if (!configIncludeFuzzyType.includes(' array') && !configIncludeFuzzyType.includes(' regexp')) {
-        const includeTypeErrorMsg = `@rollup/plugin-inline-resource\'s input option \'include\' should be an array or RegExp`;
+        const includeTypeErrorMsg = `@rollup/plugin-inline-resource\'s input option \'includes\' should be an array or RegExp`;
         chalkSay(includeTypeErrorMsg);
         throw new Error(includeTypeErrorMsg);
       }
 
-      // include/exclude option worked here
+      // includes/exclude option worked here
       const bundleNames = Object.keys(bundles);
       const includeValidationCompare = ((rule) => {
         if (configIncludeFuzzyType.includes(' array')) {
@@ -71,7 +77,7 @@ export default function inlineResource(configs?: IPluginProps) {
         return () => false
       })(configIncludes);
 
-      // bundles filterd after include/exclude
+      // bundles filterd after includes/exclude
       const conditionalBundleNames = bundleNames.filter((bundleName: string) => {
         let includeCondition = includeValidationCompare(bundleName);
         let excludeCondition = configExcludes.test(bundleName);
@@ -95,20 +101,6 @@ export default function inlineResource(configs?: IPluginProps) {
       // @ts-ignore
       let { source: htmlFileContent } = htmlBundleInfo;
 
-      // compress options work here
-      const terserOrNot = (content: string) => {
-        if (compress) {
-          return minify(content, {
-            removeComments: true,
-            collapseWhitespace: true,
-            removeEmptyAttributes: true,
-          });
-        } else {
-          return Promise.resolve(content);
-        }
-
-      }
-
       chalkSay(`resources included: ${conditionalBundleNames.join('、')}...`, chalk.green, false);
 
       conditionalBundleNames.forEach((name) => {
@@ -125,7 +117,6 @@ export default function inlineResource(configs?: IPluginProps) {
           }
         }
         // TODO: not support uncompressed one now
-        // const innerHTMLContent = await terserOrNot(currentBundleContent);
         const innerHTMLContent = currentBundleContent;
 
         // excludeAttrs worked here
@@ -138,9 +129,11 @@ export default function inlineResource(configs?: IPluginProps) {
             return new RegExp(`${extAttr.key}\=\"${extAttr.value}\"`, 'g').test(props[0]);
           }
         }).length) {
-          domNodeString = createEmbededDomNode(extractExpectedTagName(mettedDomNodeString), innerHTMLContent, props, {
+          domNodeString = createEmbededDomNode(extractExpectedTagName(mettedDomNodeString), bundleTransform ? bundleTransform(name, innerHTMLContent) : innerHTMLContent, props, {
             name,
+            base,
             mettedDomNodeString,
+            bundleNames: conditionalBundleNames,
           });
         }
         htmlFileContent = htmlFileContent.replace(mettedDomNodeString, domNodeString);
