@@ -112,7 +112,7 @@ export function createEmbededDomNode(tagName: string, innerHTMLContent?: string,
   bundleNames: string[],
 }) {
   const { name, mettedDomNodeString } = extra || {};
-  (name && mettedDomNodeString) && chalkSay(`extracted ${name} and embedding into ${mettedDomNodeString}`, chalk.blue, false);
+  (name && mettedDomNodeString) && chalkSay(`extracting ${name} to embed into ${mettedDomNodeString}`, chalk.blue, false);
   return `<${tagName} ${attrs?.join(' ')}>${innerHTMLContent}</${tagName}>`;
 }
 
@@ -181,8 +181,8 @@ export function checkShouldMount(elementString: string, determiningUnmountProper
  * @param htmlContent
  * @returns string
  */
-export function getDomNodeStringFromSourceProp(propValue: string, htmlContent: string) {
-  const regexpRule = new RegExp(`\<.+(src|href)=\"\/?${propValue}\".+`, 'g');
+export function getDomNodeStringFromSourceProp(sourcePropValue: string, htmlContent: string) {
+  const regexpRule = new RegExp(`\<.+(src|href)=\"\/?${sourcePropValue}\".+`, 'g');
   return htmlContent.match(regexpRule)?.[0] || ''
 }
 

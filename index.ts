@@ -101,13 +101,15 @@ export default function inlineResource(configs?: IPluginProps) {
       // @ts-ignore
       let { source: htmlFileContent } = htmlBundleInfo;
 
-      chalkSay(`resources included: ${conditionalBundleNames.join('、')}...`, chalk.green, false);
+      console.log(htmlFileContent, 'htmlFileContent1');
+
+      chalkSay(`\n[rollup-plugin-inline-sources] Resources included: ${conditionalBundleNames.join('、')}...`, chalk.green, false);
 
       conditionalBundleNames.forEach((name) => {
         const currentBundleContent = extractSourceCode(`${name}`, bundles[name]);
         const mettedDomNodeString = getDomNodeStringFromSourceProp(`${base}${name}`, htmlFileContent);
         if (!mettedDomNodeString) {
-          const unmetErrorMsg = `rollup-plugin-inline-resource haven't matched the file named ${base}${name}`;
+          const unmetErrorMsg = `Rollup-plugin-inline-resource haven't matched the file named ${base}${name}`;
           if (nonMatched === 2 || nonMatched === 'error') {
             chalkSay(unmetErrorMsg, chalk.bgRed.white);
             throw new Error(unmetErrorMsg);
@@ -129,6 +131,7 @@ export default function inlineResource(configs?: IPluginProps) {
             return new RegExp(`${extAttr.key}\=\"${extAttr.value}\"`, 'g').test(props[0]);
           }
         }).length) {
+          console.log(`length not correct`, 1);
           domNodeString = createEmbededDomNode(extractExpectedTagName(mettedDomNodeString), bundleTransform ? bundleTransform(name, innerHTMLContent) : innerHTMLContent, props, {
             name,
             base,
@@ -136,7 +139,14 @@ export default function inlineResource(configs?: IPluginProps) {
             bundleNames: conditionalBundleNames,
           });
         }
+
+        console.log(htmlFileContent, 1);
+        console.log(mettedDomNodeString, 2);
+        console.log(domNodeString, 3);
+
+        // replacements
         htmlFileContent = htmlFileContent.replace(mettedDomNodeString, domNodeString);
+        console.log(htmlFileContent, 4);
       });
 
       this.emitFile({
